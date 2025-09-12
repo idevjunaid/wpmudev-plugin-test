@@ -1,5 +1,6 @@
 import { createRoot, render, StrictMode, useState, useEffect, createInterpolateElement } from '@wordpress/element';
 import { Button, TextControl, Spinner, Notice } from '@wordpress/components';
+import DriveBrowser from './Components/DriveBrowser';
 
 import "./scss/style.scss"
 
@@ -96,6 +97,37 @@ const WPMUDEV_DriveTest = () => {
         }
     };
 
+    function buildDriveTree(filesObj) {
+        const items = Object.values(filesObj);
+        const map = new Map();
+
+        // initialize all items with children
+        items.forEach(item => {
+            map.set(item.id, { ...item, children: [] });
+        });
+
+        const roots = [];
+
+        items.forEach(item => {
+            const node = map.get(item.id);
+            if (item.parents && item.parents.length > 0) {
+                const parentId = item.parents[0];
+                const parent = map.get(parentId);
+                if (parent) {
+                    parent.children.push(node);
+                } else {
+                    // parent not in the list (shared folder or root) → treat as root
+                    roots.push(node);
+                }
+            } else {
+                // no parent → root item
+                roots.push(node);
+            }
+        });
+
+        return roots;
+    }
+
 
     const loadFiles = async () => {
         setIsLoading(true);
@@ -108,10 +140,10 @@ const WPMUDEV_DriveTest = () => {
                 }
             );
             const data = await response.json();
-            console.log(data, "data");
+            // console.log(data, "data");
             if (data.files) {
-                setFiles(data.files);
-                console.log(files)
+                const tree = buildDriveTree(data.files);
+                setFiles(tree);
             } else {
                 console.error("No files returned:", data);
             }
@@ -360,28 +392,7 @@ const WPMUDEV_DriveTest = () => {
                                 </div>
                             ) : files.length > 0 ? (
                                 <div className="drive-files-grid">
-                                    {files.map((file) => (
-                                        <div key={file.id} className="drive-file-item">
-                                            <div className="file-info">
-                                                <strong>{file.name}</strong>
-                                                <small>
-                                                    {file.modifiedTime ? new Date(file.modifiedTime).toLocaleDateString() : 'Unknown date'}
-                                                </small>
-                                            </div>
-                                            <div className="file-actions">
-                                                {file.webViewLink && (
-                                                    <Button
-                                                        variant="link"
-                                                        size="small"
-                                                        href=''
-                                                        target="_blank"
-                                                    >
-                                                        View in Drive
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
+                                    <DriveBrowser nodes={files} />
                                 </div>
                             ) : (
                                 <div className="sui-box-settings-row">

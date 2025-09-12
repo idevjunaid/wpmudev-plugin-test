@@ -307,15 +307,23 @@ class Drive_API extends Base
 			$options = array(
 				'pageSize' => $page_size,
 				'q'        => $query,
-				'fields'   => 'files(id,name,mimeType,size,modifiedTime,webViewLink)',
+				'fields'   => 'files(id,name,mimeType,size,modifiedTime,webViewLink,parents,iconLink,fullFileExtension,fileExtension,exportLinks,driveId,webContentLink)',
 			);
 
 			$results = $this->drive_service->files->listFiles($options);
 			$files   = $results->getFiles();
-			
+			$files = json_decode(json_encode($files), true);
+			$files_array = [];
+			foreach ($files as $file) {
+				$files_array[$file['id']] = $file;
+			}
+
+			/* 
+			exit;
+		
 			$file_list = array();
 			foreach ($files as $file) {
-
+				$id = $file->getId();
 				$file_list[] = array(
 					'id'           => $file->getId(),
 					'name'         => $file->getName(),
@@ -324,13 +332,16 @@ class Drive_API extends Base
 					'modifiedTime' => $file->getModifiedTime(),
 					'webViewLink'  => $file->getWebViewLink(),
 					'iconLink'  => $file->getIconLink(),
+					// 'parent'  => $file->getParent(),
 				);
 			}
-
+			print_r($file_list);
+			exit;
+ */
 
 			return array(
 				'success' => true,
-				'files'   => $file_list,
+				'files'   => $files_array,
 			);
 		} catch (Exception $e) {
 			return new WP_Error('api_error', $e->getMessage(), array('status' => 500));
