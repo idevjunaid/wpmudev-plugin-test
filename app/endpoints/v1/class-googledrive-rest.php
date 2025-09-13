@@ -17,6 +17,7 @@ namespace WPMUDEV\PluginTest\Endpoints\V1;
 // Abort if called directly.
 defined('WPINC') || die;
 
+use Google\Service\Dfareporting\Resource\Files;
 use WPMUDEV\PluginTest\Base;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -299,6 +300,12 @@ class Drive_API extends Base
 		if (! $this->ensure_valid_token()) {
 			return new WP_Error('no_access_token', 'Not authenticated with Google Drive', array('status' => 401));
 		}
+
+		return [
+			'success' => '',
+			'files' => json_decode(file_get_contents(__DIR__ . "\dummy-data.json"), true),
+			'exists' => file_exists(__DIR__ . "\dummy-data.json") 
+		];
 
 		try {
 			$page_size = 20; // This should be an input parameter not static value 20.

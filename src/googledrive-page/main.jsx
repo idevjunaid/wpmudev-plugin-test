@@ -50,7 +50,7 @@ const WPMUDEV_DriveTest = () => {
     const handleSaveCredentials = async () => {
         setIsLoading(true);
         try {
-            const response = await fetch("http://localhost/car_rental/wp-json/wpmudev/v1/drive/save-credentials", {
+            const response = await fetch(wpmudevDriveTest.baseUrl+"wp-json/wpmudev/v1/drive/save-credentials", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -77,7 +77,7 @@ const WPMUDEV_DriveTest = () => {
         setIsLoading(true);
         try {
             const response = await fetch(
-                "http://localhost/car_rental/wp-json/wpmudev/v1/drive/auth",
+                wpmudevDriveTest.baseUrl+"wp-json/wpmudev/v1/drive/auth",
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -133,7 +133,7 @@ const WPMUDEV_DriveTest = () => {
         setIsLoading(true);
         try {
             const response = await fetch(
-                "http://localhost/car_rental/wp-json/wpmudev/v1/drive/files",
+                wpmudevDriveTest.baseUrl+"wp-json/wpmudev/v1/drive/files",
                 {
                     method: "GET",
                     headers: { "Content-Type": "application/json" },
@@ -168,7 +168,7 @@ const WPMUDEV_DriveTest = () => {
             formData.append("file", uploadFile);
 
             const response = await fetch(
-                "http://localhost/car_rental/wp-json/wpmudev/v1/drive/upload",
+                wpmudevDriveTest.baseUrl+"wp-json/wpmudev/v1/drive/upload",
                 {
                     method: "POST",
                     body: formData,

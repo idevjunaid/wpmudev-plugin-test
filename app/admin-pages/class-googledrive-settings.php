@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Google Drive test block.
  *
@@ -14,11 +15,12 @@
 namespace WPMUDEV\PluginTest\App\Admin_Pages;
 
 // Abort if called directly.
-defined( 'WPINC' ) || die;
+defined('WPINC') || die;
 
 use WPMUDEV\PluginTest\Base;
 
-class Google_Drive extends Base {
+class Google_Drive extends Base
+{
 	/**
 	 * The page title.
 	 *
@@ -77,30 +79,32 @@ class Google_Drive extends Base {
 	 * @since 1.0.0
 	 *
 	 */
-	public function init() {
-		$this->page_title     = __( 'Google Drive Test', 'wpmudev-plugin-test' );
-		$this->creds          = get_option( $this->option_name, array() );
-		$this->assets_version = ! empty( $this->script_data( 'version' ) ) ? $this->script_data( 'version' ) : WPMUDEV_PLUGINTEST_VERSION;
+	public function init()
+	{
+		$this->page_title     = __('Google Drive Test', 'wpmudev-plugin-test');
+		$this->creds          = get_option($this->option_name, array());
+		$this->assets_version = ! empty($this->script_data('version')) ? $this->script_data('version') : WPMUDEV_PLUGINTEST_VERSION;
 		$this->unique_id      = "wpmudev_plugintest_drive_main_wrap-{$this->assets_version}";
 
-		add_action( 'admin_menu', array( $this, 'register_admin_page' ) );
-		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+		add_action('admin_menu', array($this, 'register_admin_page'));
+		add_action('admin_enqueue_scripts', array($this, 'enqueue_assets'));
 		// Add body class to admin pages.
-		add_filter( 'admin_body_class', array( $this, 'admin_body_classes' ) );
+		add_filter('admin_body_class', array($this, 'admin_body_classes'));
 	}
 
-	public function register_admin_page() {
+	public function register_admin_page()
+	{
 		$page = add_menu_page(
 			'Google Drive Test',
 			$this->page_title,
 			'manage_options',
 			$this->page_slug,
-			array( $this, 'callback' ),
+			array($this, 'callback'),
 			'dashicons-cloud',
 			7
 		);
 
-		add_action( 'load-' . $page, array( $this, 'prepare_assets' ) );
+		add_action('load-' . $page, array($this, 'prepare_assets'));
 	}
 
 	/**
@@ -108,7 +112,8 @@ class Google_Drive extends Base {
 	 *
 	 * @return void
 	 */
-	public function callback() {
+	public function callback()
+	{
 		$this->view();
 	}
 
@@ -117,16 +122,17 @@ class Google_Drive extends Base {
 	 *
 	 * @return void
 	 */
-	public function prepare_assets() {
-		if ( ! is_array( $this->page_scripts ) ) {
+	public function prepare_assets()
+	{
+		if (! is_array($this->page_scripts)) {
 			$this->page_scripts = array();
 		}
 
 		$handle       = 'wpmudev_plugintest_drivepage';
 		$src          = WPMUDEV_PLUGINTEST_ASSETS_URL . '/js/drivetestpage.min.js';
 		$style_src    = WPMUDEV_PLUGINTEST_ASSETS_URL . '/css/drivetestpage.min.css';
-		$dependencies = ! empty( $this->script_data( 'dependencies' ) )
-			? $this->script_data( 'dependencies' )
+		$dependencies = ! empty($this->script_data('dependencies'))
+			? $this->script_data('dependencies')
 			: array(
 				'react',
 				'wp-element',
@@ -135,7 +141,7 @@ class Google_Drive extends Base {
 				'wp-polyfill',
 			);
 
-		$this->page_scripts[ $handle ] = array(
+		$this->page_scripts[$handle] = array(
 			'src'       => $src,
 			'style_src' => $style_src,
 			'deps'      => $dependencies,
@@ -149,10 +155,10 @@ class Google_Drive extends Base {
 				'restEndpointUpload'   => 'wpmudev/v1/drive/upload',
 				'restEndpointDownload' => 'wpmudev/v1/drive/download',
 				'restEndpointCreate'   => 'wpmudev/v1/drive/create-folder',
-				'nonce'                => wp_create_nonce( 'wp_rest' ),
+				'nonce'                => wp_create_nonce('wp_rest'),
 				'authStatus'           => $this->get_auth_status(),
-				'redirectUri'          => home_url( '/wp-json/wpmudev/v1/drive/callback' ),
-				'hasCredentials'       => ! empty( $this->creds['client_id'] ) && ! empty( $this->creds['client_secret'] ),
+				'redirectUri'          => home_url('/wp-json/wpmudev/v1/drive/callback'),
+				'hasCredentials'       => ! empty($this->creds['client_id']) && ! empty($this->creds['client_secret']),
 			),
 		);
 	}
@@ -162,11 +168,12 @@ class Google_Drive extends Base {
 	 *
 	 * @return bool
 	 */
-	private function get_auth_status() {
-		$access_token = get_option( 'wpmudev_drive_access_token', '' );
-		$expires_at   = get_option( 'wpmudev_drive_token_expires', 0 );
-		
-		return ! empty( $access_token ) && time() < $expires_at;
+	private function get_auth_status()
+	{
+		$access_token = get_option('wpmudev_drive_access_token', '');
+		$expires_at   = get_option('wpmudev_drive_token_expires', 0);
+
+		return ! empty($access_token) && time() < $expires_at;
 	}
 
 	/**
@@ -176,10 +183,11 @@ class Google_Drive extends Base {
 	 *
 	 * @return string|array
 	 */
-	protected function script_data( string $key = '' ) {
+	protected function script_data(string $key = '')
+	{
 		$raw_script_data = $this->raw_script_data();
 
-		return ! empty( $key ) && ! empty( $raw_script_data[ $key ] ) ? $raw_script_data[ $key ] : '';
+		return ! empty($key) && ! empty($raw_script_data[$key]) ? $raw_script_data[$key] : '';
 	}
 
 	/**
@@ -187,10 +195,11 @@ class Google_Drive extends Base {
 	 *
 	 * @return array
 	 */
-	protected function raw_script_data(): array {
+	protected function raw_script_data(): array
+	{
 		static $script_data = null;
 
-		if ( is_null( $script_data ) && file_exists( WPMUDEV_PLUGINTEST_DIR . 'assets/js/drivetestpage.min.asset.php' ) ) {
+		if (is_null($script_data) && file_exists(WPMUDEV_PLUGINTEST_DIR . 'assets/js/drivetestpage.min.asset.php')) {
 			$script_data = include WPMUDEV_PLUGINTEST_DIR . 'assets/js/drivetestpage.min.asset.php';
 		}
 
@@ -202,9 +211,10 @@ class Google_Drive extends Base {
 	 *
 	 * @return void
 	 */
-	public function enqueue_assets() {
-		if ( ! empty( $this->page_scripts ) ) {
-			foreach ( $this->page_scripts as $handle => $page_script ) {
+	public function enqueue_assets()
+	{
+		if (! empty($this->page_scripts)) {
+			foreach ($this->page_scripts as $handle => $page_script) {
 				wp_register_script(
 					$handle,
 					$page_script['src'],
@@ -213,26 +223,39 @@ class Google_Drive extends Base {
 					$page_script['strategy']
 				);
 
-				if ( ! empty( $page_script['localize'] ) ) {
-					wp_localize_script( $handle, 'wpmudevDriveTest', $page_script['localize'] );
+				// Always provide baseUrl + nonce
+				$default_localize = [
+					'baseUrl' => esc_url_raw(site_url('/')), // e.g. http://localhost/wp-test/
+					'nonce'   => wp_create_nonce('wp_rest'),
+				];
+
+				// Merge defaults with any custom localize data
+				if (! empty($page_script['localize']) && is_array($page_script['localize'])) {
+					$localize_data = array_merge($default_localize, $page_script['localize']);
+				} else {
+					$localize_data = $default_localize;
 				}
 
-				wp_enqueue_script( $handle );
+				wp_localize_script($handle, 'wpmudevDriveTest', $localize_data);
 
-				if ( ! empty( $page_script['style_src'] ) ) {
-					wp_enqueue_style( $handle, $page_script['style_src'], array(), $this->assets_version );
+				wp_enqueue_script($handle);
+
+				if (! empty($page_script['style_src'])) {
+					wp_enqueue_style($handle, $page_script['style_src'], [], $this->assets_version);
 				}
 			}
 		}
 	}
+
 
 	/**
 	 * Prints the wrapper element which React will use as root.
 	 *
 	 * @return void
 	 */
-	protected function view() {
-		echo '<div id="' . esc_attr( $this->unique_id ) . '" class="sui-wrap">
+	protected function view()
+	{
+		echo '<div id="' . esc_attr($this->unique_id) . '" class="sui-wrap">
 		<!-- View will be mounted here -->
 		</div>';
 	}
@@ -244,18 +267,19 @@ class Google_Drive extends Base {
 	 *
 	 * @return string
 	 */
-	public function admin_body_classes( $classes = '' ) {
-		if ( ! function_exists( 'get_current_screen' ) ) {
+	public function admin_body_classes($classes = '')
+	{
+		if (! function_exists('get_current_screen')) {
 			return $classes;
 		}
 
 		$current_screen = get_current_screen();
 
-		if ( empty( $current_screen->id ) || ! strpos( $current_screen->id, $this->page_slug ) ) {
+		if (empty($current_screen->id) || ! strpos($current_screen->id, $this->page_slug)) {
 			return $classes;
 		}
 
-		$classes .= ' sui-' . str_replace( '.', '-', WPMUDEV_PLUGINTEST_SUI_VERSION ) . ' ';
+		$classes .= ' sui-' . str_replace('.', '-', WPMUDEV_PLUGINTEST_SUI_VERSION) . ' ';
 
 		return $classes;
 	}
