@@ -1,44 +1,68 @@
 import React, { useState } from "react";
 import { Button } from "@wordpress/components";
 
-function DriveBrowser({ nodes }) {
-  const [path, setPath] = useState([]); // breadcrumb path
+function DriveBrowser({ nodes, currentFolderID, setcurrentFolderID }) {
+  const files = [];
+  for (let id in nodes) {
+    const node = nodes[id];
+    const parent = node.parents && node.parents[0]; // will get null or parent ID
 
-  // Find current folder based on path
-  const currentNodes = (
-    path.length === 0 ? nodes : path[path.length - 1].children || []
-  )
-    .slice()
-    .sort((a, b) => {
-      const isFolderA = a.mimeType === "application/vnd.google-apps.folder";
-      const isFolderB = b.mimeType === "application/vnd.google-apps.folder";
-      if (isFolderA === isFolderB) return a.name.localeCompare(b.name); // sort alphabetically if same type
-      return isFolderA ? -1 : 1; // folders first
-    });
+
+    //Root
+    if (currentFolderID === null) {
+      if (node.parents === null) {
+        files.push(nodes[id]);
+      } else if (!nodes[parent]) {
+        files.push(nodes[id]);
+      }
+    } else if (parent === currentFolderID) {
+      files.push(nodes[id]);
+    }
+  }
+
+  //current Folder ID -> in list then is not root
+  // shift it's name to breadcrumb
+  // if root shift root to breadcrumb
+
+  function buildBreadcrumb(folderID) {
+    let breadcrumb = [];
+    if (folderID === null) {
+      return [null];
+    }
+
+    //remove
+    if (!nodes[folderID]) {
+      return [null];
+    }
+
+    breadcrumb.unshift(folderID);
+    let parentID = nodes[folderID].parents ? nodes[folderID].parents[0] : null;
+    if (!parentID) {
+      breadcrumb.unshift(null)
+    }
+
+    return [...buildBreadcrumb(parentID), ...breadcrumb];
+  }
 
   const handleFolderClick = (folder) => {
-    setPath([...path, folder]);
+    setcurrentFolderID(folder.id);
   };
-
-  const handleBreadcrumbClick = (index) => {
-    setPath(path.slice(0, index + 1));
+  
+  const handleBreadcrumbClick = (folderId) => {
+    setcurrentFolderID(folderId);
   };
 
   return (
     <div>
       {/* Breadcrumb */}
       <div className="breadcrumb">
-        <span onClick={() => setPath([])} style={{ cursor: "pointer" }}>
-          Root
-        </span>
-        {path.map((p, index) => (
-          <span key={p.id}>
-            {" > "}
+        {buildBreadcrumb(currentFolderID).map((p, index) => (
+          <span key={index}>
             <span
-              onClick={() => handleBreadcrumbClick(index)}
+              onClick={() => handleBreadcrumbClick(p)}
               style={{ cursor: "pointer" }}
-            >
-              {p.name}
+              >
+              {nodes[p] ? nodes[p].name : "Root"} {index < buildBreadcrumb(currentFolderID).length - 1 ? " / " : ""} 
             </span>
           </span>
         ))}
@@ -46,14 +70,13 @@ function DriveBrowser({ nodes }) {
 
       {/* Current Level */}
       <div className="drive-files-grid">
-        {currentNodes.map((node) => (
+        {files.map((node) => (
           <div
             key={node.id}
-            className={`drive-node ${
-              node.mimeType === "application/vnd.google-apps.folder"
-                ? "folder"
-                : "file"
-            } drive-file-item`}
+            className={`drive-node ${node.mimeType === "application/vnd.google-apps.folder"
+              ? "folder"
+              : "file"
+              } drive-file-item`}
             onClick={() =>
               node.mimeType === "application/vnd.google-apps.folder"
                 ? handleFolderClick(node)

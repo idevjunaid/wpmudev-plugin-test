@@ -459,9 +459,6 @@ class Drive_API extends Base
 		$name = $request->get_param('name');
 		$parentId = $request->get_param('parentId');
 
-		print_r($name);
-		print_r($parentId);
-		exit;
 		if (empty($name)) {
 			return new WP_Error('missing_name', 'Folder name is required', array('status' => 400));
 		}

@@ -15704,5 +15704,14 @@ This is used to give admin notices that are loaded outside of the .wrap but insi
     margin-top: 15px;
   }
 }
+.sui-notices {
+  position: fixed;
+  z-index: 999999;
+  top: 5%;
+  right: 30px;
+}
+.sui-notices .components-notice {
+  box-shadow: 5px 5px 9px 0px rgba(0, 0, 0, 0.3215686275);
+}
 
 /*# sourceMappingURL=drivetestpage.min.css.map*/

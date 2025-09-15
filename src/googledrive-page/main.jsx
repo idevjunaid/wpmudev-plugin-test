@@ -1,7 +1,7 @@
 import { createRoot, render, StrictMode, useState, useEffect, createInterpolateElement } from '@wordpress/element';
 import { Button, TextControl, Spinner, Notice } from '@wordpress/components';
+import uniqueId from 'lodash/uniqueId';
 import DriveBrowser from './Components/DriveBrowser';
-
 import "./scss/style.scss"
 
 const domElement = document.getElementById(window.wpmudevDriveTest.dom_element_id);
@@ -12,13 +12,43 @@ const WPMUDEV_DriveTest = () => {
     const [showCredentials, setShowCredentials] = useState(!window.wpmudevDriveTest.hasCredentials);
     const [isLoading, setIsLoading] = useState(false);
     const [files, setFiles] = useState([]);
+    const [currentFolderID, setcurrentFolderID] = useState(null);
     const [uploadFile, setUploadFile] = useState(null);
     const [folderName, setFolderName] = useState('');
+
     const [notice, setNotice] = useState({ message: '', type: '' });
+
+
+    const [notices, setNotices] = useState([]);
+    const addNotice = (status, content) => {
+        const id = uniqueId("notice-");
+        setNotices((prev) => [
+            ...prev,
+            { id: id, status, content },
+        ]);
+        // setTimeout(() => removeNotice(id), 5000); // Auto-remove after 5 seconds
+    };
+
+    useEffect(() => {
+        addNotice('info', 'Welcome to the Google Drive Test Interface!');
+        addNotice('info', 'Welcome to the Google Drive Test Interface!');
+        addNotice('info', 'Welcome to the Google Drive Test Interface!');
+    }, [])
+
+    const removeNotice = (id) => {
+        setNotices((prev) => prev.filter((n) => n.id !== id));
+    };
+
+    window.notices = notices;
+    window.addNotice = addNotice;
+    window.removeNotice = removeNotice;
+
+
     const [credentials, setCredentials] = useState({
         clientId: '',
         clientSecret: ''
     });
+
 
     useEffect(() => {
     }, [isAuthenticated]);
@@ -27,25 +57,21 @@ const WPMUDEV_DriveTest = () => {
         const handleMessage = (event) => {
             if (event.data.auth === "success") {
                 setIsLoading(false);
-                console.log("Authorization successful!");
+                addNotice('success', 'Authorization successful!');
                 setIsAuthenticated(true);
             }
             if (event.data.auth === "error") {
                 setIsLoading(false);
-                console.error("Authorization failed");
+                addNotice('error', 'Authorization failed. Please try again.');
             }
         };
 
         window.addEventListener("message", handleMessage);
+        addNotice('info', 'Loading files from Drive...');
         loadFiles();
         return () => window.removeEventListener("message", handleMessage);
     }, []);
 
-
-    const showNotice = (message, type = 'success') => {
-        setNotice({ message, type });
-        setTimeout(() => setNotice({ message: '', type: '' }), 5000);
-    };
 
     const handleSaveCredentials = async () => {
         setIsLoading(true);
@@ -63,11 +89,11 @@ const WPMUDEV_DriveTest = () => {
                 setShowCredentials(false);
                 setHasCredentials(true);
                 setIsAuthenticated(false);
-                showNotice('Credentials saved successfully. Please authenticate with Google Drive.', 'success');
+                addNotice('success', 'Credentials saved successfully. Please authenticate with Google Drive.');
                 setIsLoading(false);
             }
         } catch (error) {
-            console.error("Error saving credentials:", error);
+            addNotice('error', 'Error saving credentials.');
             setIsLoading(false);
         }
 
@@ -88,45 +114,15 @@ const WPMUDEV_DriveTest = () => {
                 window.open(data.auth_url, "_blank", "width=500,height=600");
                 // spinner stays active until message received
             } else {
-                console.error("No auth URL returned:", data);
+                addNotice('error', 'No authentication URL returned.');
                 setIsLoading(false);
             }
         } catch (error) {
-            console.error("Error during authentication:", error);
+            addNotice('error', 'Error during authentication.');
             setIsLoading(false);
         }
     };
 
-    function buildDriveTree(filesObj) {
-        const items = Object.values(filesObj);
-        const map = new Map();
-
-        // initialize all items with children
-        items.forEach(item => {
-            map.set(item.id, { ...item, children: [] });
-        });
-
-        const roots = [];
-
-        items.forEach(item => {
-            const node = map.get(item.id);
-            if (item.parents && item.parents.length > 0) {
-                const parentId = item.parents[0];
-                const parent = map.get(parentId);
-                if (parent) {
-                    parent.children.push(node);
-                } else {
-                    // parent not in the list (shared folder or root) → treat as root
-                    roots.push(node);
-                }
-            } else {
-                // no parent → root item
-                roots.push(node);
-            }
-        });
-
-        return roots;
-    }
 
 
     const loadFiles = async () => {
@@ -140,16 +136,14 @@ const WPMUDEV_DriveTest = () => {
                 }
             );
             const data = await response.json();
-            // console.log(data, "data");
             if (data.files) {
-                const tree = buildDriveTree(data.files);
-                setFiles(tree);
+                setFiles(data.files);
             } else {
-                console.error("No files returned:", data);
+                addNotice('error', 'No files returned from Drive.');
             }
             setIsLoading(false);
         } catch (error) {
-            console.error("Error during authentication:", error);
+            addNotice('error', 'Error loading files from Drive.');
             setIsLoading(false);
         }
 
@@ -157,7 +151,7 @@ const WPMUDEV_DriveTest = () => {
 
     const handleUpload = async () => {
         if (!uploadFile) {
-            alert("Please select a file to upload");
+            addNotice('error', 'Please select a file to upload.');
             return;
         }
 
@@ -178,15 +172,16 @@ const WPMUDEV_DriveTest = () => {
             const data = await response.json();
 
             if (response.ok && data.success) {
-                console.log("Upload successful:", data.file);
+                loadFiles(currentFolderID);
+                setUploadFile(null);
                 alert(`Uploaded: ${data.file.name}`);
+                addNotice('success', `File "${data.file.name}" uploaded successfully.`);
             } else {
-                console.error("Upload failed:", data);
                 alert("Upload failed!");
+                addNotice('error', 'File upload failed.');
             }
         } catch (error) {
-            console.error("Error uploading file:", error);
-            alert("Error uploading file");
+            addNotice('error', 'Error uploading file.');
         } finally {
             setIsLoading(false);
         }
@@ -209,20 +204,19 @@ const WPMUDEV_DriveTest = () => {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         name: folderName,
-                        parentId: currentFolderId || "root",
+                        parentId: currentFolderID || null,
                     }),
                 }
             );
-            const data = response.data;
-            console.log(data,"data");
-            console.log(data.folder,"folder");
+            const data = await response.json();
             const newFolder = data.folder;
-            console.log("Folder created:", newFolder.name);
-
-            setFolderName(""); 
-            loadFiles(currentFolderId);
+            addNotice('success', `Folder "${newFolder.name}" created successfully.`);
+            setFolderName("");
+            loadFiles(currentFolderID);
         } catch (error) {
-            console.error("Error creating folder:", error);
+
+            addNotice('error', 'Error creating folder.');
+            addNotice('error', error.message);
         } finally {
             setIsLoading(false);
         }
@@ -238,12 +232,19 @@ const WPMUDEV_DriveTest = () => {
                 </h1>
                 <p className="sui-description">Test Google Drive API integration for applicant assessment</p>
             </div>
+            <div className="sui-notices">
+                {notices.map((notice) => (
+                    <Notice
+                        key={notice.id}
+                        status={notice.status} // "error" | "success" | "warning" | "info"
+                        isDismissible={true}
+                        onRemove={() => removeNotice(notice.id)}
+                    >
+                        {notice.content}
+                    </Notice>
+                ))}
+            </div>
 
-            {notice.message && (
-                <Notice status={notice.type} isDismissible onRemove=''>
-                    {notice.message}
-                </Notice>
-            )}
 
             {showCredentials ? (
                 <div className="sui-box">
@@ -420,13 +421,13 @@ const WPMUDEV_DriveTest = () => {
                                     <Spinner />
                                     <p>Loading files...</p>
                                 </div>
-                            ) : files.length > 0 ? (
+                            ) : Object.keys(files).length > 0 ? (
                                 <div className="drive-files-grid">
-                                    <DriveBrowser nodes={files} />
+                                    <DriveBrowser currentFolderID={currentFolderID} setcurrentFolderID={setcurrentFolderID} nodes={files} />
                                 </div>
                             ) : (
                                 <div className="sui-box-settings-row">
-                                    <p>No files found in your Drive. Upload a file or create a folder to get started.</p>
+                                    <p>No files found in your Drive. Upload a file or create a folder to get started.....</p>
                                 </div>
                             )}
                         </div>
