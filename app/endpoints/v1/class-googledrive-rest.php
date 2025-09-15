@@ -304,7 +304,7 @@ class Drive_API extends Base
 		return [
 			'success' => '',
 			'files' => json_decode(file_get_contents(__DIR__ . "\dummy-data.json"), true),
-			'exists' => file_exists(__DIR__ . "\dummy-data.json") 
+			'exists' => file_exists(__DIR__ . "\dummy-data.json")
 		];
 
 		try {
@@ -457,7 +457,11 @@ class Drive_API extends Base
 		}
 
 		$name = $request->get_param('name');
+		$parentId = $request->get_param('parentId');
 
+		print_r($name);
+		print_r($parentId);
+		exit;
 		if (empty($name)) {
 			return new WP_Error('missing_name', 'Folder name is required', array('status' => 400));
 		}
@@ -467,8 +471,12 @@ class Drive_API extends Base
 			$folder->setName(sanitize_text_field($name));
 			$folder->setMimeType('application/vnd.google-apps.folder');
 
+			if (!empty($parentId)) {
+				$folder->setParents([$parentId]);
+			}
+
 			$result = $this->drive_service->files->create($folder, array(
-				'fields' => 'id,name,mimeType,webViewLink',
+				'fields' => 'id,name,mimeType,parents,webViewLink',
 			));
 
 			return new WP_REST_Response(array(
@@ -477,6 +485,7 @@ class Drive_API extends Base
 					'id'          => $result->getId(),
 					'name'        => $result->getName(),
 					'mimeType'    => $result->getMimeType(),
+					'parents'     => $result->getParents(),
 					'webViewLink' => $result->getWebViewLink(),
 				),
 			));

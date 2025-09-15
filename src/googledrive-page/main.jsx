@@ -26,10 +26,9 @@ const WPMUDEV_DriveTest = () => {
     useEffect(() => {
         const handleMessage = (event) => {
             if (event.data.auth === "success") {
-                setIsLoading(false); // stop spinner when auth completes
+                setIsLoading(false);
                 console.log("Authorization successful!");
                 setIsAuthenticated(true);
-                // optionally reload tokens/status from backend here
             }
             if (event.data.auth === "error") {
                 setIsLoading(false);
@@ -38,6 +37,7 @@ const WPMUDEV_DriveTest = () => {
         };
 
         window.addEventListener("message", handleMessage);
+        loadFiles();
         return () => window.removeEventListener("message", handleMessage);
     }, []);
 
@@ -50,7 +50,7 @@ const WPMUDEV_DriveTest = () => {
     const handleSaveCredentials = async () => {
         setIsLoading(true);
         try {
-            const response = await fetch(wpmudevDriveTest.baseUrl+"wp-json/wpmudev/v1/drive/save-credentials", {
+            const response = await fetch(wpmudevDriveTest.baseUrl + "wp-json/wpmudev/v1/drive/save-credentials", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -77,7 +77,7 @@ const WPMUDEV_DriveTest = () => {
         setIsLoading(true);
         try {
             const response = await fetch(
-                wpmudevDriveTest.baseUrl+"wp-json/wpmudev/v1/drive/auth",
+                wpmudevDriveTest.baseUrl + "wp-json/wpmudev/v1/drive/auth",
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -133,7 +133,7 @@ const WPMUDEV_DriveTest = () => {
         setIsLoading(true);
         try {
             const response = await fetch(
-                wpmudevDriveTest.baseUrl+"wp-json/wpmudev/v1/drive/files",
+                wpmudevDriveTest.baseUrl + "wp-json/wpmudev/v1/drive/files",
                 {
                     method: "GET",
                     headers: { "Content-Type": "application/json" },
@@ -168,7 +168,7 @@ const WPMUDEV_DriveTest = () => {
             formData.append("file", uploadFile);
 
             const response = await fetch(
-                wpmudevDriveTest.baseUrl+"wp-json/wpmudev/v1/drive/upload",
+                wpmudevDriveTest.baseUrl + "wp-json/wpmudev/v1/drive/upload",
                 {
                     method: "POST",
                     body: formData,
@@ -198,7 +198,37 @@ const WPMUDEV_DriveTest = () => {
     };
 
     const handleCreateFolder = async () => {
+        if (!folderName.trim()) return;
+
+        setIsLoading(true);
+        try {
+            const response = await fetch(
+                wpmudevDriveTest.baseUrl + "wp-json/wpmudev/v1/drive/create-folder",
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        name: folderName,
+                        parentId: currentFolderId || "root",
+                    }),
+                }
+            );
+            const data = response.data;
+            console.log(data,"data");
+            console.log(data.folder,"folder");
+            const newFolder = data.folder;
+            console.log("Folder created:", newFolder.name);
+
+            setFolderName(""); 
+            loadFiles(currentFolderId);
+        } catch (error) {
+            console.error("Error creating folder:", error);
+        } finally {
+            setIsLoading(false);
+        }
     };
+
+
 
     return (
         <>
