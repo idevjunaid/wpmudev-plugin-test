@@ -214,7 +214,7 @@ class Drive_API extends Base
 
 			// Instead of wp_redirect, output JS to notify parent and close popup
 			header('Content-Type: text/html;'); ?>
-?>
+			?>
 			<html>
 
 			<script>
@@ -298,68 +298,70 @@ class Drive_API extends Base
 	}
 
 	/**
-	 * List files in Google Drive.
+	 * List files in Google Drive (REST callback).
 	 */
-	public function list_files()
+	public function list_files(WP_REST_Request $request)
 	{
 		if (! $this->ensure_valid_token()) {
-			return new WP_Error('no_access_token', 'Not authenticated with Google Drive', array('status' => 401));
+			return new WP_Error(
+				'no_access_token',
+				'Not authenticated with Google Drive',
+				array('status' => 401)
+			);
 		}
-
-		// return [
-		// 	'success' => '',
-		// 	'files' => json_decode(file_get_contents(__DIR__ . "\dummy-data.json"), true),
-		// 	'exists' => file_exists(__DIR__ . "\dummy-data.json")
-		// ];
 
 		try {
-			$page_size = 2; // This should be an input parameter not static value 20.
-			
-			$query     = 'trashed=false'; // This should be an input parameter not static value.
+			// Input params from GET request
+			$parentId  = $request->get_param('parentId');
+			$pageToken = $request->get_param('pageToken');
+			$page_size = $request->get_param('pageSize') ?: 20;
+
+			// Base query
+			$query = "trashed=false";
+
+			// Restrict to root if parentId not provided
+			if (empty($parentId)) {
+				$query .= " and 'root' in parents";
+			} else {
+				$query .= sprintf(" and '%s' in parents", esc_sql($parentId));
+			}
 
 			$options = array(
-				'pageSize' => $page_size,
+				'pageSize' => intval($page_size),
 				'q'        => $query,
-				'fields'   => 'files(id,name,mimeType,size,modifiedTime,webViewLink,parents,iconLink,fullFileExtension,fileExtension,exportLinks,driveId,webContentLink)',
+				'fields'   => 'nextPageToken, files(id,name,mimeType,size,modifiedTime,webViewLink,parents,iconLink,fullFileExtension,fileExtension,exportLinks,driveId,webContentLink)',
 			);
 
-			$results = $this->drive_service->files->listFiles($options);
-			$files   = $results->getFiles();
-			$files = json_decode(json_encode($files), true);
-			$files_array = [];
-			foreach ($files as $file) {
-				$files_array[$file['id']] = $file;
+			if (! empty($pageToken)) {
+				$options['pageToken'] = $pageToken;
 			}
 
-			/* 
-			exit;
-		
-			$file_list = array();
-			foreach ($files as $file) {
-				$id = $file->getId();
-				$file_list[] = array(
-					'id'           => $file->getId(),
-					'name'         => $file->getName(),
-					'mimeType'     => $file->getMimeType(),
-					'size'         => $file->getSize(),
-					'modifiedTime' => $file->getModifiedTime(),
-					'webViewLink'  => $file->getWebViewLink(),
-					'iconLink'  => $file->getIconLink(),
-					// 'parent'  => $file->getParent(),
-				);
-			}
-			print_r($file_list);
-			exit;
- */
+			// Fetch files
+			$results = $this->drive_service->files->listFiles($options);
+
+			$files = $results->getFiles();
+			$files = json_decode(json_encode($files), true);
+			$files_array = $files;
+			// $files_array = [];
+			// foreach ($files as $file) {
+			// 	$files_array[$file['id']] = $file;
+			// }
 
 			return array(
-				'success' => true,
-				'files'   => $files_array,
+				'success'       => true,
+				'files'         => $files_array,
+				'nextPageToken' => $results->getNextPageToken() ?: null,
+				'prevPageToken' => $pageToken ?: null, // frontend keeps stack for true "previous"
 			);
 		} catch (Exception $e) {
-			return new WP_Error('api_error', $e->getMessage(), array('status' => 500));
+			return new WP_Error(
+				'api_error',
+				$e->getMessage(),
+				array('status' => 500)
+			);
 		}
 	}
+
 
 	/**
 	 * Upload file to Google Drive.

@@ -1,76 +1,27 @@
-import React, { useState } from "react";
+import React from "react";
 import { Button } from "@wordpress/components";
 
-function DriveBrowser({ nodes, currentFolderID, setcurrentFolderID }) {
-  const files = [];
-  for (let id in nodes) {
-    const node = nodes[id];
-    const parent = node.parents && node.parents[0]; // will get null or parent ID
-
-
-    //Root
-    if (currentFolderID === null) {
-      if (node.parents === null) {
-        files.push(nodes[id]);
-      } else if (!nodes[parent]) {
-        files.push(nodes[id]);
-      }
-    } else if (parent === currentFolderID) {
-      files.push(nodes[id]);
-    }
-  }
-
-  //current Folder ID -> in list then is not root
-  // shift it's name to breadcrumb
-  // if root shift root to breadcrumb
-
-  function buildBreadcrumb(folderID) {
-    let breadcrumb = [];
-    if (folderID === null) {
-      return [null];
-    }
-
-    //remove
-    if (!nodes[folderID]) {
-      return [null];
-    }
-
-    breadcrumb.unshift(folderID);
-    let parentID = nodes[folderID].parents ? nodes[folderID].parents[0] : null;
-    if (!parentID) {
-      breadcrumb.unshift(null)
-    }
-
-    return [...buildBreadcrumb(parentID), ...breadcrumb];
-  }
-
-  const handleFolderClick = (folder) => {
-    setcurrentFolderID(folder.id);
-  };
-  
-  const handleBreadcrumbClick = (folderId) => {
-    setcurrentFolderID(folderId);
-  };
-
+function DriveBrowser({ nodes, onFolderClick, onBreadcrumbClick, breadcrumbs }) {
   return (
     <div>
       {/* Breadcrumb */}
       <div className="breadcrumb">
-        {buildBreadcrumb(currentFolderID).map((p, index) => (
-          <span key={index}>
+        {breadcrumbs.map((bc, index) => (
+          <span key={bc.id || "root"}>
             <span
-              onClick={() => handleBreadcrumbClick(p)}
+              onClick={() => onBreadcrumbClick(bc.id)}
               style={{ cursor: "pointer" }}
-              >
-              {nodes[p] ? nodes[p].name : "Root"} {index < buildBreadcrumb(currentFolderID).length - 1 ? " / " : ""} 
+            >
+              {bc.name}
             </span>
+            {index < breadcrumbs.length - 1 ? " / " : ""}
           </span>
         ))}
       </div>
 
-      {/* Current Level */}
+      {/* Current Level Files/Folders */}
       <div className="drive-files-grid">
-        {files.map((node) => (
+        {nodes.map((node) => (
           <div
             key={node.id}
             className={`drive-node ${node.mimeType === "application/vnd.google-apps.folder"
@@ -79,7 +30,7 @@ function DriveBrowser({ nodes, currentFolderID, setcurrentFolderID }) {
               } drive-file-item`}
             onClick={() =>
               node.mimeType === "application/vnd.google-apps.folder"
-                ? handleFolderClick(node)
+                ? onFolderClick(node)
                 : null
             }
           >

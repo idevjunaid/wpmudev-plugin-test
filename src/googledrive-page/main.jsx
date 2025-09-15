@@ -16,6 +16,7 @@ const WPMUDEV_DriveTest = () => {
     const [currentFolderID, setcurrentFolderID] = useState(null);
     const [uploadFile, setUploadFile] = useState(null);
     const [folderName, setFolderName] = useState('');
+    const [breadcrumbs, setBreadcrumbs] = useState([{ id: null, name: "Root" }]);
 
     const [notice, setNotice] = useState({ message: '', type: '' });
 
@@ -145,29 +146,72 @@ const WPMUDEV_DriveTest = () => {
     };
 
 
+    const [pageToken, setPageToken] = useState(null);
+    const [nextPageToken, setNextPageToken] = useState(null);
+    const [prevTokens, setPrevTokens] = useState([]); // stack for "previous"
 
-    const loadFiles = async () => {
+    const loadFiles = async (folderId = null, token = null) => {
         setIsLoading(true);
         try {
-            const response = await fetch(
-                wpmudevDriveTest.baseUrl + "wp-json/wpmudev/v1/drive/files",
-                {
-                    method: "GET",
-                    headers: { "Content-Type": "application/json" },
-                }
-            );
+            const url = new URL(wpmudevDriveTest.baseUrl + "wp-json/wpmudev/v1/drive/files");
+
+            if (folderId) url.searchParams.append("parentId", folderId);
+            if (token) url.searchParams.append("pageToken", token);
+
+            const response = await fetch(url, {
+                method: "GET",
+                headers: { "Content-Type": "application/json" },
+            });
+
             const data = await response.json();
+
             if (data.files) {
                 setFiles(data.files);
+                setNextPageToken(data.nextPageToken || null);
+                setPageToken(token); // track current
             } else {
-                addNotice('error', 'No files returned from Drive.');
+                addNotice("error", "No files returned from Drive.");
             }
-            setIsLoading(false);
         } catch (error) {
-            addNotice('error', 'Error loading files from Drive.');
-            setIsLoading(false);
+            addNotice("error", "Error loading files from Drive.");
         }
+        setIsLoading(false);
+    };
 
+    // Folder click → push into breadcrumb and load children
+    const handleFolderClick = (folder) => {
+        setBreadcrumbs((prev) => [...prev, { id: folder.id, name: folder.name }]);
+        loadFiles(folder.id);
+        setcurrentFolderID(folder.id);
+    };
+
+    // Breadcrumb click → slice array and load that folder
+    const handleBreadcrumbClick = (id) => {
+        const idx = breadcrumbs.findIndex((b) => b.id === id);
+        if (idx !== -1) {
+            setBreadcrumbs(breadcrumbs.slice(0, idx + 1));
+            loadFiles(id);
+        }
+        setcurrentFolderID(id);
+    };
+
+
+    // Go to next page
+    const handleNextPage = () => {
+        if (nextPageToken) {
+            setPrevTokens([...prevTokens, pageToken]); // push current into history
+            loadFiles(currentFolderID, nextPageToken);
+        }
+    };
+
+    // Go to previous page
+    const handlePrevPage = () => {
+        if (prevTokens.length > 0) {
+            const newPrev = [...prevTokens];
+            const prevToken = newPrev.pop();
+            setPrevTokens(newPrev);
+            loadFiles(currentFolderID, prevToken);
+        }
     };
 
     const handleUpload = async () => {
@@ -391,7 +435,23 @@ const WPMUDEV_DriveTest = () => {
                                 </div>
                             ) : Object.keys(files).length > 0 ? (
                                 <div className="drive-files-grid">
-                                    <DriveBrowser currentFolderID={currentFolderID} setcurrentFolderID={setcurrentFolderID} nodes={files} />
+                                    <DriveBrowser
+                                        currentFolderID={currentFolderID}
+                                        setcurrentFolderID={setcurrentFolderID}
+                                        nodes={files}
+                                        breadcrumbs={breadcrumbs}
+                                        onFolderClick={handleFolderClick}
+                                        onBreadcrumbClick={handleBreadcrumbClick}
+                                    />
+
+                                    <div className="flex gap-2">
+                                        <button onClick={handlePrevPage} disabled={prevTokens.length === 0}>
+                                            Previous
+                                        </button>
+                                        <button onClick={handleNextPage} disabled={!nextPageToken}>
+                                            Next
+                                        </button>
+                                    </div>
                                 </div>
                             ) : (
                                 <div className="sui-box-settings-row">
