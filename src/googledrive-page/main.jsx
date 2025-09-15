@@ -3,6 +3,7 @@ import { Button, TextControl, Spinner, Notice } from '@wordpress/components';
 import uniqueId from 'lodash/uniqueId';
 import DriveBrowser from './Components/DriveBrowser';
 import "./scss/style.scss"
+import CredentialsForm from './Components/CredentialsForm';
 
 const domElement = document.getElementById(window.wpmudevDriveTest.dom_element_id);
 
@@ -67,8 +68,10 @@ const WPMUDEV_DriveTest = () => {
         };
 
         window.addEventListener("message", handleMessage);
-        addNotice('info', 'Loading files from Drive...');
-        loadFiles();
+        if (hasCredentials && isAuthenticated) {
+            addNotice('info', 'Loading files from Drive...');
+            loadFiles();
+        }
         return () => window.removeEventListener("message", handleMessage);
     }, []);
 
@@ -111,7 +114,25 @@ const WPMUDEV_DriveTest = () => {
             );
             const data = await response.json();
             if (data.auth_url) {
-                window.open(data.auth_url, "_blank", "width=500,height=600");
+                const popup = window.open(data.auth_url, "_blank", "width=500,height=600");
+
+                // Poll for close / URL changes
+                const popupTimer = setInterval(() => {
+                    console.log("Checking popup...");
+                    if (!popup || popup.closed) {
+                        clearInterval(popupTimer);
+                        setIsLoading(false);
+                        console.log("Popup closed");
+                        return;
+                    }
+
+                    try {
+                        // Only works if popup is same-origin
+                        console.log("Popup URL:", popup.location.href);
+                    } catch (e) {
+                        // Different origin (Google OAuth, etc.) → ignore until redirect back to your domain
+                    }
+                }, 500);
                 // spinner stays active until message received
             } else {
                 addNotice('error', 'No authentication URL returned.');
@@ -247,64 +268,11 @@ const WPMUDEV_DriveTest = () => {
 
 
             {showCredentials ? (
-                <div className="sui-box">
-                    <div className="sui-box-header">
-                        <h2 className="sui-box-title">Set Google Drive Credentials</h2>
-                    </div>
-                    <div className="sui-box-body">
-                        <div className="sui-box-settings-row">
-                            <TextControl
-                                help={createInterpolateElement(
-                                    'You can get Client ID from <a>Google Cloud Console</a>. Make sure to enable Google Drive API.',
-                                    {
-                                        a: <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" />,
-                                    }
-                                )}
-                                label="Client ID"
-                                value={credentials.clientId}
-                                onChange={(value) => setCredentials({ ...credentials, clientId: value })}
-                            />
-                        </div>
-
-                        <div className="sui-box-settings-row">
-                            <TextControl
-                                help={createInterpolateElement(
-                                    'You can get Client Secret from <a>Google Cloud Console</a>.',
-                                    {
-                                        a: <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" />,
-                                    }
-                                )}
-                                label="Client Secret"
-                                value={credentials.clientSecret}
-                                onChange={(value) => setCredentials({ ...credentials, clientSecret: value })}
-                                type="password"
-                            />
-                        </div>
-
-                        <div className="sui-box-settings-row">
-                            <span>Please use this URL <em>{window.wpmudevDriveTest.redirectUri}</em> in your Google API's <strong>Authorized redirect URIs</strong> field.</span>
-                        </div>
-
-                        <div className="sui-box-settings-row">
-                            <p><strong>Required scopes for Google Drive API:</strong></p>
-                            <ul>
-                                <li>https://www.googleapis.com/auth/drive.file</li>
-                                <li>https://www.googleapis.com/auth/drive.readonly</li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div className="sui-box-footer">
-                        <div className="sui-actions-right">
-                            <Button
-                                variant="primary"
-                                onClick={handleSaveCredentials}
-                                disabled={isLoading}
-                            >
-                                {isLoading ? <Spinner /> : 'Save Credentials'}
-                            </Button>
-                        </div>
-                    </div>
-                </div>
+                <CredentialsForm
+                    credentials={credentials}
+                    setCredentials={setCredentials}
+                    handleSaveCredentials={handleSaveCredentials}
+                    isLoading={isLoading} />
             ) : !isAuthenticated ? (
                 <div className="sui-box">
                     <div className="sui-box-header">

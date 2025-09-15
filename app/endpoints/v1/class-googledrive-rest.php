@@ -213,13 +213,18 @@ class Drive_API extends Base
 			}
 
 			// Instead of wp_redirect, output JS to notify parent and close popup
+			header('Content-Type: text/html;'); ?>
 ?>
+			<html>
+
 			<script>
 				window.opener.postMessage({
 					auth: "success"
 				}, "*");
 				window.close();
 			</script>
+
+			</html>
 <?php
 			exit;
 		} catch (Exception $e) {
@@ -301,14 +306,15 @@ class Drive_API extends Base
 			return new WP_Error('no_access_token', 'Not authenticated with Google Drive', array('status' => 401));
 		}
 
-		return [
-			'success' => '',
-			'files' => json_decode(file_get_contents(__DIR__ . "\dummy-data.json"), true),
-			'exists' => file_exists(__DIR__ . "\dummy-data.json")
-		];
+		// return [
+		// 	'success' => '',
+		// 	'files' => json_decode(file_get_contents(__DIR__ . "\dummy-data.json"), true),
+		// 	'exists' => file_exists(__DIR__ . "\dummy-data.json")
+		// ];
 
 		try {
-			$page_size = 20; // This should be an input parameter not static value 20.
+			$page_size = 2; // This should be an input parameter not static value 20.
+			
 			$query     = 'trashed=false'; // This should be an input parameter not static value.
 
 			$options = array(
