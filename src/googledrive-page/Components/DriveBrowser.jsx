@@ -2,22 +2,59 @@ import React from "react";
 import { Button } from "@wordpress/components";
 
 function DriveBrowser({ nodes, onFolderClick, onBreadcrumbClick, breadcrumbs }) {
+  
+  const handleDownload = async (fileId) => {
+    try {
+      const response = await fetch(
+        wpmudevDriveTest.baseUrl + `wp-json/wpmudev/v1/drive/download?file_id=${fileId}`,
+        {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      const data = await response.json();
+
+      if (data.success && data.content) {
+        // Convert base64 → Blob
+        const byteCharacters = atob(data.content);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: data.mimeType });
+
+        // Create temporary download link
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = data.filename || "download";
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+      }
+    } catch (error) {
+      console.error("Download failed", error);
+    }
+  };
+
+
   return (
     <div>
       {/* Breadcrumb */}
-      <div className="breadcrumb">
+      <ul className="breadcrumb breadcrumb-drive">
         {breadcrumbs.map((bc, index) => (
-          <span key={bc.id || "root"}>
+          <li key={bc.id || "root"}>
             <span
               onClick={() => onBreadcrumbClick(bc.id)}
               style={{ cursor: "pointer" }}
             >
               {bc.name}
             </span>
-            {index < breadcrumbs.length - 1 ? " / " : ""}
-          </span>
+          </li>
         ))}
-      </div>
+      </ul>
 
       {/* Current Level Files/Folders */}
       <div className="drive-files-grid">
@@ -72,7 +109,7 @@ function DriveBrowser({ nodes, onFolderClick, onBreadcrumbClick, breadcrumbs }) 
                 <Button
                   variant="link"
                   size="small"
-                  href={node.webContentLink}
+                  onClick={() => handleDownload(node.id)}
                   target="_blank"
                 >
                   Download

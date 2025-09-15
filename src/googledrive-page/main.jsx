@@ -4,6 +4,10 @@ import uniqueId from 'lodash/uniqueId';
 import DriveBrowser from './Components/DriveBrowser';
 import "./scss/style.scss"
 import CredentialsForm from './Components/CredentialsForm';
+import AuthBox from './Components/AuthBox';
+import UploadSection from './Components/UploadSection';
+import CreateFolderSection from './Components/CreateFolderSection';
+import FilesSection from './Components/FilesSection';
 
 const domElement = document.getElementById(window.wpmudevDriveTest.dom_element_id);
 
@@ -28,14 +32,8 @@ const WPMUDEV_DriveTest = () => {
             ...prev,
             { id: id, status, content },
         ]);
-        // setTimeout(() => removeNotice(id), 5000); // Auto-remove after 5 seconds
+        setTimeout(() => removeNotice(id), 5000);
     };
-
-    useEffect(() => {
-        addNotice('info', 'Welcome to the Google Drive Test Interface!');
-        addNotice('info', 'Welcome to the Google Drive Test Interface!');
-        addNotice('info', 'Welcome to the Google Drive Test Interface!');
-    }, [])
 
     const removeNotice = (id) => {
         setNotices((prev) => prev.filter((n) => n.id !== id));
@@ -239,10 +237,8 @@ const WPMUDEV_DriveTest = () => {
             if (response.ok && data.success) {
                 loadFiles(currentFolderID);
                 setUploadFile(null);
-                alert(`Uploaded: ${data.file.name}`);
                 addNotice('success', `File "${data.file.name}" uploaded successfully.`);
             } else {
-                alert("Upload failed!");
                 addNotice('error', 'File upload failed.');
             }
         } catch (error) {
@@ -250,11 +246,6 @@ const WPMUDEV_DriveTest = () => {
         } finally {
             setIsLoading(false);
         }
-    };
-
-
-
-    const handleDownload = async (fileId, fileName) => {
     };
 
     const handleCreateFolder = async () => {
@@ -318,148 +309,45 @@ const WPMUDEV_DriveTest = () => {
                     handleSaveCredentials={handleSaveCredentials}
                     isLoading={isLoading} />
             ) : !isAuthenticated ? (
-                <div className="sui-box">
-                    <div className="sui-box-header">
-                        <h2 className="sui-box-title">Authenticate with Google Drive</h2>
-                    </div>
-                    <div className="sui-box-body">
-                        <div className="sui-box-settings-row">
-                            <p>Please authenticate with Google Drive to proceed with the test.</p>
-                            <p><strong>This test will require the following permissions:</strong></p>
-                            <ul>
-                                <li>View and manage Google Drive files</li>
-                                <li>Upload new files to Drive</li>
-                                <li>Create folders in Drive</li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div className="sui-box-footer">
-                        <div className="sui-actions-left">
-                            <Button
-                                variant="secondary"
-                                onClick={() => setShowCredentials(true)}
-                            >
-                                Change Credentials
-                            </Button>
-                        </div>
-                        <div className="sui-actions-right">
-                            <Button
-                                variant="primary"
-                                onClick={handleAuth}
-                                disabled={isLoading}
-                            >
-                                {isLoading ? <Spinner /> : 'Authenticate with Google Drive'}
-                            </Button>
-                        </div>
-                    </div>
-                </div>
+                <AuthBox
+                    handleAuth={handleAuth}
+                    setShowCredentials={setShowCredentials}
+                    isLoading={isLoading}
+                />
             ) : (
                 <>
                     {/* File Upload Section */}
-                    <div className="sui-box">
-                        <div className="sui-box-header">
-                            <h2 className="sui-box-title">Upload File to Drive</h2>
-                        </div>
-                        <div className="sui-box-body">
-                            <div className="sui-box-settings-row">
-                                <input
-                                    type="file"
-                                    onChange={(e) => setUploadFile(e.target.files[0])}
-                                    className="drive-file-input"
-                                />
-                                {uploadFile && (
-                                    <p><strong>Selected:</strong> {uploadFile.name} ({Math.round(uploadFile.size / 1024)} KB)</p>
-                                )}
-                            </div>
-                        </div>
-                        <div className="sui-box-footer">
-                            <div className="sui-actions-right">
-                                <Button
-                                    variant="primary"
-                                    onClick={handleUpload}
-                                    disabled={isLoading || !uploadFile}
-                                >
-                                    {isLoading ? <Spinner /> : 'Upload to Drive'}
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-
+                    <UploadSection
+                        uploadFile={uploadFile}
+                        setUploadFile={setUploadFile}
+                        handleUpload={handleUpload}
+                        isLoading={isLoading}
+                    />
                     {/* Create Folder Section */}
-                    <div className="sui-box">
-                        <div className="sui-box-header">
-                            <h2 className="sui-box-title">Create New Folder</h2>
-                        </div>
-                        <div className="sui-box-body">
-                            <div className="sui-box-settings-row">
-                                <TextControl
-                                    label="Folder Name"
-                                    value={folderName}
-                                    onChange={setFolderName}
-                                    placeholder="Enter folder name"
-                                />
-                            </div>
-                        </div>
-                        <div className="sui-box-footer">
-                            <div className="sui-actions-right">
-                                <Button
-                                    variant="secondary"
-                                    onClick={handleCreateFolder}
-                                    disabled={isLoading || !folderName.trim()}
-                                >
-                                    {isLoading ? <Spinner /> : 'Create Folder'}
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
+
+                    <CreateFolderSection
+                        folderName={folderName}
+                        setFolderName={setFolderName}
+                        handleCreateFolder={handleCreateFolder}
+                        isLoading={isLoading}
+                    />
 
                     {/* Files List Section */}
-                    <div className="sui-box">
-                        <div className="sui-box-header">
-                            <h2 className="sui-box-title">Your Drive Files</h2>
-                            <div className="sui-actions-right">
-                                <Button
-                                    variant="secondary"
-                                    onClick={loadFiles}
-                                    disabled={isLoading}
-                                >
-                                    {isLoading ? <Spinner /> : 'Refresh Files'}
-                                </Button>
-                            </div>
-                        </div>
-                        <div className="sui-box-body">
-                            {isLoading ? (
-                                <div className="drive-loading">
-                                    <Spinner />
-                                    <p>Loading files...</p>
-                                </div>
-                            ) : Object.keys(files).length > 0 ? (
-                                <div className="drive-files-grid">
-                                    <DriveBrowser
-                                        currentFolderID={currentFolderID}
-                                        setcurrentFolderID={setcurrentFolderID}
-                                        nodes={files}
-                                        breadcrumbs={breadcrumbs}
-                                        onFolderClick={handleFolderClick}
-                                        onBreadcrumbClick={handleBreadcrumbClick}
-                                    />
-
-                                    <div className="flex gap-2">
-                                        <button onClick={handlePrevPage} disabled={prevTokens.length === 0}>
-                                            Previous
-                                        </button>
-                                        <button onClick={handleNextPage} disabled={!nextPageToken}>
-                                            Next
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="sui-box-settings-row">
-                                    <p>No files found in your Drive. Upload a file or create a folder to get started.....</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                    <FilesSection
+                        files={files}
+                        isLoading={isLoading}
+                        loadFiles={loadFiles}
+                        currentFolderID={currentFolderID}
+                        setcurrentFolderID={setcurrentFolderID}
+                        breadcrumbs={breadcrumbs}
+                        handleFolderClick={handleFolderClick}
+                        handleBreadcrumbClick={handleBreadcrumbClick}
+                        handlePrevPage={handlePrevPage}
+                        handleNextPage={handleNextPage}
+                        prevTokens={prevTokens}
+                        nextPageToken={nextPageToken}
+                        pageToken={pageToken}
+                    />
                 </>
             )}
         </>
